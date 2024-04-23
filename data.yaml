@@ -1,0 +1,8 @@
+train: D:\yolo\pythonProject\images\train\images
+val: D:\yolo\pythonProject\images\valid\images
+test: D:\yolo\pythonProject\images\test\images
+
+nc: 1
+names: ['spoiled-leaf']
+
+
