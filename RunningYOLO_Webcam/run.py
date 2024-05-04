@@ -1,41 +1,58 @@
-import os
-
 from ultralytics import YOLO
 import cv2
+import math
+import time
+cap=cv2.VideoCapture(0)
 
+frame_width=int(cap.get(3))
+frame_height = int(cap.get(4))
 
-VIDEOS_DIR = os.path.join('.', 'videos')
+out=cv2.VideoWriter('output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 10, (frame_width, frame_height))
 
-video_path = os.path.join(VIDEOS_DIR, 'alpaca1.mp4')
-video_path_out = '{}_out.mp4'.format(video_path)
+model=YOLO("../runs/detect/train/weights/best.pt")
+classNames = ["spoiled leaf"
+             ]
 
-cap = cv2.VideoCapture(video_path)
-ret, frame = cap.read()
-H, W, _ = frame.shape
-out = cv2.VideoWriter(video_path_out, cv2.VideoWriter_fourcc(*'MP4V'), int(cap.get(cv2.CAP_PROP_FPS)), (W, H))
-
-model_path = os.path.join('.', 'runs', 'detect', 'train', 'weights', 'last.pt')
-
-# Load a model
-model = YOLO(model_path)  # load a custom model
-
-threshold = 0.5
-
-while ret:
-
-    results = model(frame)[0]
-
-    for result in results.boxes.data.tolist():
-        x1, y1, x2, y2, score, class_id = result
-
-        if score > threshold:
-            cv2.rectangle(frame, (int(x1), int(y1)), (int(x2), int(y2)), (0, 255, 0), 4)
-            cv2.putText(frame, results.names[int(class_id)].upper(), (int(x1), int(y1 - 10)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.3, (0, 255, 0), 3, cv2.LINE_AA)
-
-    out.write(frame)
-    ret, frame = cap.read()
-
-cap.release()
+def detectedAreaSpoiled(n):
+    print(f"Timer started for {n} seconds.")
+    time.sleep(n)
+    print("Timer completed!")
+while True:
+    success, img = cap.read()
+    # Doing detections using YOLOv8 frame by frame
+    #stream = True will use the generator and it is more efficient than normal
+    results=model(img,stream=True)
+    #Once we have the results we can check for individual bounding boxes and see how well it performs
+    # Once we have have the results we will loop through them and we will have the bouning boxes for each of the result
+    # we will loop through each of the bouning box
+    for r in results:
+        boxes=r.boxes
+        for box in boxes:
+            x1, y1, x2, y2 = box.xyxy[0]
+            #print(x1, y1, x2, y2)
+            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
+            print(x1, y1, x2, y2)
+            cv2.rectangle(img, (x1,y1), (x2,y2), (255,0,255),3)
+            #print(box.conf[0])
+            conf = math.ceil((box.conf[0]*100))/100
+            cls = int(box.cls[0])
+            class_name = classNames[cls]
+            label = f'{class_name}{conf}'
+            t_size = cv2.getTextSize(label, 0, fontScale=1, thickness=2)[0]
+            #print(t_size)
+            c2 = x1 + t_size[0], y1 - t_size[1] - 3
+            cv2.rectangle(img, (x1,y1), c2, [255,0,255], -1, cv2.LINE_AA)  # filled
+            cv2.putText(img, label, (x1,y1-2),0, 1,[255,255,255], thickness=1,lineType=cv2.LINE_AA)
+            # Taking input from the user for the number of seconds
+            if class_name == 'spoiled leaf':
+                print('spoiled leaf')
+                try:
+                    seconds = 5
+                    detectedAreaSpoiled(seconds)
+                except ValueError:
+                    print("Please enter a valid number of seconds.")
+    out.write(img)
+    cv2.imshow("Image", img)
+    if cv2.waitKey(1) & 0xFF == ord('1'):
+        break
 out.release()
-cv2.destroyAllWindows()

@@ -1,6 +1,7 @@
 from ultralytics import YOLO
 import cv2
 import math
+import time
 cap=cv2.VideoCapture(0)
 
 frame_width=int(cap.get(3))
@@ -10,7 +11,12 @@ out=cv2.VideoWriter('output.avi', cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), 10
 
 model=YOLO("../runs/detect/train/weights/best.pt")
 classNames = ["spoiled leaf"
-              ]
+             ]
+
+def detectedAreaSpoiled(n):
+    print(f"Timer started for {n} seconds.")
+    time.sleep(n)
+    print("Timer completed!")
 while True:
     success, img = cap.read()
     # Doing detections using YOLOv8 frame by frame
@@ -37,6 +43,14 @@ while True:
             c2 = x1 + t_size[0], y1 - t_size[1] - 3
             cv2.rectangle(img, (x1,y1), c2, [255,0,255], -1, cv2.LINE_AA)  # filled
             cv2.putText(img, label, (x1,y1-2),0, 1,[255,255,255], thickness=1,lineType=cv2.LINE_AA)
+            # Taking input from the user for the number of seconds
+            if class_name == 'spoiled leaf':
+                print('spoiled leaf')
+                try:
+                    seconds = 5
+                    detectedAreaSpoiled(seconds)
+                except ValueError:
+                    print("Please enter a valid number of seconds.")
     out.write(img)
     cv2.imshow("Image", img)
     if cv2.waitKey(1) & 0xFF == ord('1'):
